@@ -2,7 +2,19 @@ const tileDisplay = document.querySelector('.tile-container')
 const keyboard = document.querySelector('.key-container')
 const messageDisplay = document.querySelector('.message-container')
 
-const wordle = 'SUPER'
+let wordle
+
+const getWordle = () => {
+	fetch('http://localhost:8000/word')
+		.then(response => response.json())
+		.then(json => {
+			console.log(json)
+			wordle = json.toUpperCase()
+		})
+		.catch(err => console.log(err))
+}
+
+getWordle()
 
 const keys = [
 	'Q', 
@@ -69,16 +81,18 @@ keys.forEach(key => {
 })
 
 const handleClick = (letter) => {
-	console.log('clicked', letter)
-	if (letter === "<<") {
-		deleteLetter(letter)
-		return
+	
+	if (!isGameOver) {
+		if (letter === "<<") {
+			deleteLetter(letter)
+			return
+		}
+		if (letter === 'ENTER') {
+			checkRow()
+			return
+		}
+		addLetter(letter)
 	}
-	if (letter === 'ENTER') {
-		checkRow()
-		return
-	}
-	addLetter(letter)
 }
 
 const addLetter = (letter) => {
@@ -105,24 +119,35 @@ const deleteLetter = (letter) => {
 const checkRow = () => {
 
 	const guess = guessRows[currentRow].join('')
-	flipTile()
-
 	if (currentTile > 4) {
-		if (guess == wordle) {
-			showMessage('Magnificent')
-			isGameOver = true
-			return
-		} else{
-			if (currentRow >= 5) {
-				isGameOver = false
-				showMessage('Game over')
-				return
-			}
-			if (currentRow < 5) {
-				currentRow++
-				currentTile = 0
-			}
-		}
+
+		fetch(`http://localhost:8000/check/?word=${guess}`)
+			.then(response => response.json())
+			.then(json => {
+				if (json == 'Entry word not found') {
+					showMessage('Word not in list')
+					return
+				} else {
+					
+					flipTile()	
+					if (guess == wordle) {
+						showMessage('Magnificent')
+						isGameOver = true
+						return
+					} else{
+						if (currentRow >= 5) {
+							isGameOver = true
+							showMessage('Game over')
+							return
+						}
+						if (currentRow < 5) {
+							currentRow++
+							currentTile = 0
+						}
+					}
+				}
+			})
+			.catch(err => console.log(err))		
 	}
 }
 
